@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Generate a rich static Mews shelf from normalized bookmark JSON.
+
+This is intentionally safe for the public Mews template:
+- reads sample/exported JSON only
+- does not fetch private data
+- does not overwrite existing hand-designed pages unless you choose the output path
+"""
+import argparse
+import html
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+CATEGORY_RULES = [
+    ("Research & Analysis", ["research", "analysis", "study", "report", "context"]),
+    ("Tools & Demos", ["tool", "demo", "build", "export", "search", "local-first"]),
+    ("Strategy & Positioning", ["strategy", "position", "portfolio", "public", "private"]),
+    ("Threads & Notes", ["thread", "note", "idea", "map", "trail"]),
+]
+
+
+def load_items(path: Path):
+    data = json.loads(path.read_text())
+    if isinstance(data, dict):
+        return data.get("items", [])
+    if isinstance(data, list):
+        return data
+    raise ValueError("Expected JSON object with items[] or a JSON list")
+
+
+def category_for(item):
+    text = (item.get("text") or "").lower()
+    for label, needles in CATEGORY_RULES:
+        if any(n in text for n in needles):
+            return label
+    return "Other Signals"
+
+
+def short(text, n=240):
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
+def render_card(item):
+    author = html.escape(item.get("authorHandle") or "unknown")
+    url = html.escape(item.get("url") or "#")
+    text = html.escape(short(item.get("text") or ""))
+    likes = item.get("metrics", {}).get("like_count") if isinstance(item.get("metrics"), dict) else None
+    stats = f"{likes} likes" if likes else "saved signal"
+    return f"""
+      <article class=\"bookmark-card\">
+        <div class=\"bookmark-top\"><span class=\"author\">@{author}</span><span>{html.escape(stats)}</span></div>
+        <p>{text}</p>
+        <a class=\"open-link\" href=\"{url}\" target=\"_blank\" rel=\"noopener\">Open source →</a>
+      </article>"""
+
+
+def render_page(items, title, description, source_label):
+    grouped = {}
+    for item in items:
+        grouped.setdefault(category_for(item), []).append(item)
+    updated = datetime.now(timezone.utc).strftime("%b %d, %Y")
+    sections = []
+    for label, group in grouped.items():
+        cards = "\n".join(render_card(i) for i in group)
+        sections.append(f"""
+    <section class=\"cluster\">
+      <h2>{html.escape(label)}</h2>
+      <div class=\"bookmark-grid\">{cards}
+      </div>
+    </section>""")
+    return f"""<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+  <title>{html.escape(title)} | Mews Shelf</title>
+  <meta name=\"description\" content=\"{html.escape(description)}\">
+  <style>
+    :root{{--bg:#070816;--panel:rgba(18,20,44,.84);--line:rgba(255,255,255,.1);--text:#f7f6ff;--muted:#bdb9d9;--cyan:#7ee7ff;--green:#90f0b6;--violet:#b88cff}}
+    *{{box-sizing:border-box}} body{{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(126,231,255,.13),transparent 28%),linear-gradient(180deg,var(--bg),#11142c);line-height:1.6}}
+    main{{max-width:1120px;margin:0 auto;padding:34px 18px 64px}} a{{color:var(--cyan);text-decoration:none}} a:hover{{text-decoration:underline}}
+    .hero{{border:1px solid var(--line);border-radius:28px;background:linear-gradient(135deg,rgba(126,231,255,.13),rgba(184,140,255,.12));padding:clamp(24px,5vw,48px);box-shadow:0 22px 70px rgba(0,0,0,.35)}}
+    .eyebrow{{color:var(--green);font-weight:900;text-transform:uppercase;letter-spacing:.09em;font-size:.78rem}} h1{{font-size:clamp(2.3rem,7vw,5rem);line-height:.95;margin:.35rem 0 1rem;letter-spacing:-.055em}} .lead{{color:#e1ddfb;max-width:780px;font-size:1.05rem}} .note{{color:var(--muted);font-size:.92rem}}
+    .cluster{{margin-top:36px}} .cluster h2{{border-bottom:1px solid var(--line);padding-bottom:12px}}
+    .bookmark-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}} .bookmark-card{{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:18px;box-shadow:0 18px 48px rgba(0,0,0,.28)}}
+    .bookmark-top{{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:.84rem}} .author{{color:var(--green);font-weight:800}} .open-link{{font-weight:800}}
+    footer{{margin-top:48px;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:.9rem}}
+  </style>
+</head>
+<body><main>
+  <section class=\"hero\"><div class=\"eyebrow\">{html.escape(source_label)}</div><h1>{html.escape(title)}</h1><p class=\"lead\">{html.escape(description)}</p><p class=\"note\">Updated {updated} · {len(items)} saved items.</p></section>
+  {''.join(sections)}
+  <footer>Generated by the public Mews shelf generator. Keep raw/private bookmark data local; publish only selected exports.</footer>
+</main></body></html>"""
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--input", default="examples/sample-bookmarks.json")
+    ap.add_argument("--output", default="shared-shelf/generated/sample-shelf.html")
+    ap.add_argument("--title", default="Sample Research Shelf")
+    ap.add_argument("--description", default="A generated Mews shelf from sample bookmark data.")
+    ap.add_argument("--source-label", default="Mews Public Template")
+    args = ap.parse_args()
+    root = Path(__file__).resolve().parents[1]
+    items = load_items(root / args.input)
+    out = root / args.output
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(render_page(items, args.title, args.description, args.source_label))
+    print(json.dumps({"output": str(out), "items": len(items)}, indent=2))
+
+if __name__ == "__main__":
+    main()

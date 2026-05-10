@@ -1,0 +1,36 @@
+{
+  "items": [
+    {
+      "id": "sample:001",
+      "url": "https://example.com/research-thread",
+      "authorHandle": "signalmapper",
+      "text": "A useful research thread about turning scattered bookmarks into a public shelf with context, curation, and links back to source material.",
+      "metrics": {"like_count": 42},
+      "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "sample:002",
+      "url": "https://example.com/tool-demo",
+      "authorHandle": "buildercat",
+      "text": "New tool demo: local-first bookmark search with theme clustering, markdown exports, and a clean static site output.",
+      "metrics": {"like_count": 18},
+      "createdAt": "2026-01-02T00:00:00Z"
+    },
+    {
+      "id": "sample:003",
+      "url": "https://example.com/analysis",
+      "authorHandle": "slowresearch",
+      "text": "Analysis: private archives become more useful when selected trails are made public as readable shelves instead of raw link dumps.",
+      "metrics": {"like_count": 27},
+      "createdAt": "2026-01-03T00:00:00Z"
+    },
+    {
+      "id": "sample:004",
+      "url": "https://example.com/strategy",
+      "authorHandle": "foundermaps",
+      "text": "Strategy note: a curator site should combine public shelves, a portfolio, and private research loops without leaking raw personal data.",
+      "metrics": {"like_count": 33},
+      "createdAt": "2026-01-04T00:00:00Z"
+    }
+  ]
+}

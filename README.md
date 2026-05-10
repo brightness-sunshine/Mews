@@ -184,3 +184,14 @@ If you want, next I can:
 1. turn this into a cleaner public GitHub landing README,
 2. create a sharper `xr-mews` fork README/positioning layer,
 3. and prep the actual commits so the repo is ready to push.
+
+## Generate public shelves
+
+Mews includes a safe static shelf generator for selected bookmark exports:
+
+```bash
+python3 tools/generate_shelf.py
+```
+
+See `GENERATOR.md` for details. The generator is intentionally separate from hand-designed pages so it can be tested without overwriting your custom site.
+
