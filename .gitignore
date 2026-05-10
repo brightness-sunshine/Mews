@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+*.pyc
+__pycache__/
+
+# Local Magpie data (private bookmarks, credentials)
+data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.env
+.env.local
+
+# Build/dist
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+.cache/
+temp/
